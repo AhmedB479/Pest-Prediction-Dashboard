@@ -561,12 +561,22 @@ def show_model_info_page():
         "🌱 Soil": ["Nitrogen (N)", "Phosphorus (P)", "Potassium (K)", "pH"],
         "📈 Computed": ["Daily GDD", "Weekly GDD", "Cumulative GDD"]
     }
-    
+
+    st.subheader("All Models Performance")
     for category, features in feature_categories.items():
         with st.expander(f"{category} Features"):
             for feature in features:
                 st.write(f"• {feature}")
     
+    # Read and display model evaluation results
+    try:
+        model_results_df = pd.read_csv('./data/model_evaluation_results.csv')
+        st.dataframe(model_results_df, use_container_width=True)
+    except FileNotFoundError:
+        st.error("Model evaluation results file not found at './data/model_evaluation_results.csv'")
+    except Exception as e:
+        st.error(f"Error loading model evaluation results: {e}")
+
     # Model selection info
     st.markdown("---")
     st.subheader("🏆 Model Selection")
