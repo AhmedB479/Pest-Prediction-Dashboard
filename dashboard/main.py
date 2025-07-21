@@ -11,6 +11,35 @@ st.set_page_config(
     layout="wide"
 )
 
+# === Sidebar Navigation ===
+def create_sidebar():
+    """Create sidebar navigation"""
+    st.sidebar.title("🌱 Navigation")
+    st.sidebar.markdown("---")
+    
+    # Navigation options
+    pages = {
+        "🏠 Home": "home",
+        "🔍 Pest Prediction": "prediction", 
+        "📊 LIME Explanations": "lime",
+        "📈 SHAP Analysis": "shap",
+        "📋 Model Information": "model_info",
+        "ℹ️ About": "about"
+    }
+    
+    # Create radio buttons for navigation
+    selected_page = st.sidebar.radio(
+        "Select a page:",
+        list(pages.keys()),
+        index=0
+    )
+    
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("### 🌾 Cotton Pest Dashboard")
+    st.sidebar.markdown("Advanced ML-based pest prediction system")
+    
+    return pages[selected_page]
+
 # === Load Models ===
 @st.cache_resource
 def load_models():
@@ -178,11 +207,96 @@ def predict_pests_demo(inputs):
     
     return predictions, daily_gdd, weekly_gdd, cumulative_gdd
 
-# === Main App ===
-def main():
+# === Page Functions ===
+def show_home_page():
+    """Home/Landing page"""
     st.title("🌱 Cotton Pest Prediction System")
+    st.markdown("---")
     
-    # Check versions
+    # Hero section
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        st.markdown("""
+        ## Welcome to the Advanced Cotton Pest Prediction Dashboard
+        
+        This intelligent system uses machine learning models to predict the presence of various cotton pests 
+        based on environmental and agricultural parameters. Make informed decisions to protect your cotton crops!
+        
+        ### 🎯 Key Features:
+        - **11 Pest Types**: Predict presence of major cotton pests
+        - **ML Models**: Advanced ensemble methods (Stacking, Voting, XGBoost, etc.)
+        - **Real-time Analysis**: Instant predictions with environmental data
+        - **Model Explainability**: LIME and SHAP analysis for transparency
+        - **Growing Degree Days**: Temperature-based crop development tracking
+        """)
+        
+    with col2:
+        st.markdown("""
+        ### 🐛 Predicted Pests:
+        - White Fly
+        - Jassid
+        - Thrips
+        - Mirid Bug
+        - Mites
+        - Aphids
+        - Dusky Cotton Bug
+        - Spotted Bollworm
+        - Pink Bollworm
+        - American Bollworm
+        - Army Worm
+        """)
+    
+    st.markdown("---")
+    
+    # Quick stats
+    st.subheader("📊 System Overview")
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric("🎯 Pest Types", "11")
+    with col2:
+        st.metric("🤖 ML Models", "9 Types")
+    with col3:
+        st.metric("🌍 Tehsils Covered", f"{len(TEHSILS)}")
+    with col4:
+        st.metric("📈 Parameters", "16")
+    
+    st.markdown("---")
+    
+    # Getting started
+    st.subheader("🚀 Getting Started")
+    st.markdown("""
+    1. **Navigate to Pest Prediction** to start making predictions
+    2. **Input environmental parameters** like temperature, humidity, rainfall
+    3. **Add soil parameters** like N-P-K values and pH
+    4. **Get instant predictions** for all 11 pest types
+    5. **Explore explanations** using LIME and SHAP analysis
+    """)
+    
+    # Version info
+    with st.expander("ℹ️ System Information"):
+        sklearn_version = check_sklearn_version()
+        numpy_version = check_numpy_version()
+        
+        st.markdown(f"""
+        **System Versions:**
+        - Scikit-learn: {sklearn_version}
+        - NumPy: {numpy_version}
+        - Streamlit: {st.__version__}
+        
+        **Model Information:**
+        - Total Models: 99 trained models (9 algorithms × 11 pests)
+        - Best performing models selected automatically
+        - Cross-validated and hyperparameter tuned
+        """)
+
+def show_prediction_page():
+    """Pest prediction page - original main functionality"""
+    st.title("🔍 Cotton Pest Prediction")
+    st.markdown("---")
+    
+    # Check versions and load models
     sklearn_version = check_sklearn_version()
     numpy_version = check_numpy_version()
     
@@ -378,6 +492,203 @@ def main():
             st.metric("Weekly GDD", f"{weekly_gdd}°C")
         with col3:
             st.metric("Cumulative GDD", f"{cumulative_gdd}°C")
+
+from components.lime import show_lime_ui, lime_explainer
+
+# In your show_lime_page() function:
+def show_lime_page():
+    """LIME explanations page"""
+    show_lime_ui()
+
+
+
+
+def show_shap_page():
+    """SHAP analysis page"""
+    st.title("📈 SHAP Model Analysis")
+    st.markdown("---")
+    
+    st.markdown("""
+    ## SHapley Additive exPlanations (SHAP)
+    
+    SHAP values provide a unified approach to explaining model predictions by computing 
+    the contribution of each feature to the prediction.
+    """)
+    
+    
+
+    # Placeholder for SHAP functionality  
+    with st.expander("📖 How SHAP Works"):
+        st.markdown("""
+        1. **Shapley Values**: Based on cooperative game theory
+        2. **Feature Contributions**: Calculate how much each feature contributes to the prediction
+        3. **Additive**: The sum of SHAP values equals the difference from expected value
+        4. **Global & Local**: Provides both instance-level and global feature importance
+        
+        **Benefits:**
+        - Theoretically grounded
+        - Consistent and fair attributions
+        - Multiple visualization types
+        - Global feature importance
+        """)
+
+def show_model_info_page():
+    """Model information page"""
+    st.title("📋 Model Information")
+    st.markdown("---")
+    
+    st.markdown("""
+    ## Machine Learning Models Overview
+    
+    Our pest prediction system uses multiple state-of-the-art machine learning algorithms
+    to ensure robust and accurate predictions.
+    """)
+    
+    # Model types
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("🤖 Algorithm Types")
+        algorithms = [
+            "Random Forest", "XGBoost", "K-Nearest Neighbors",
+            "Support Vector Machine", "Decision Tree", "AdaBoost",
+            "Bagging", "Stacking Ensemble", "Voting Ensemble"
+        ]
+        
+        for algo in algorithms:
+            st.write(f"• {algo}")
+    
+    with col2:
+        st.subheader("🎯 Target Pests")
+        pests = [
+            "White Fly", "Jassid", "Thrips", "Mirid Bug", "Mites",
+            "Aphids", "Dusky Cotton Bug", "Spotted Bollworm", 
+            "Pink Bollworm", "American Bollworm", "Army Worm"
+        ]
+        
+        for pest in pests:
+            st.write(f"• {pest}")
+    
+    st.markdown("---")
+    
+    # Features
+    st.subheader("📊 Input Features")
+    
+    feature_categories = {
+        "🕒 Temporal": ["Week", "Month", "Year"],
+        "🌍 Location": ["Tehsil"],
+        "🔍 Survey": ["Total Spots Visited", "Total Area Visited"],
+        "🌡️ Weather": ["Mean Temperature", "Max Temperature", "Min Temperature", "Dew Point", "Humidity", "Rainfall"],
+        "🌱 Soil": ["Nitrogen (N)", "Phosphorus (P)", "Potassium (K)", "pH"],
+        "📈 Computed": ["Daily GDD", "Weekly GDD", "Cumulative GDD"]
+    }
+    
+    for category, features in feature_categories.items():
+        with st.expander(f"{category} Features"):
+            for feature in features:
+                st.write(f"• {feature}")
+    
+    # Model selection info
+    st.markdown("---")
+    st.subheader("🏆 Model Selection")
+    st.markdown("""
+    **Best Performing Models by Pest:**
+    - **White Fly**: XGBoost
+    - **Jassid**: XGBoost  
+    - **Thrips**: Stacking Ensemble
+    - **Mirid Bug**: Stacking Ensemble
+    - **Mites**: Random Forest
+    - **Aphids**: Random Forest
+    - **Dusky Cotton Bug**: Stacking Ensemble
+    - **Spotted Bollworm**: Random Forest
+    - **Pink Bollworm**: Stacking Ensemble
+    - **American Bollworm**: K-Nearest Neighbors
+    - **Army Worm**: K-Nearest Neighbors
+    
+    *Models were selected based on cross-validation performance and hyperparameter tuning.*
+    """)
+
+def show_about_page():
+    """About page"""
+    st.title("ℹ️ About the Cotton Pest Prediction System")
+    st.markdown("---")
+    
+    st.markdown("""
+    ## 🌾 Project Overview
+    
+    The Cotton Pest Prediction System is an advanced machine learning application designed to help
+    farmers and agricultural experts predict the presence of various cotton pests based on 
+    environmental and agricultural parameters.
+    
+    ## 🎯 Objectives
+    
+    - **Early Warning**: Provide early detection of pest presence
+    - **Data-Driven Decisions**: Enable informed pest management strategies  
+    - **Crop Protection**: Help minimize crop damage and losses
+    - **Resource Optimization**: Optimize pesticide use and timing
+    
+    ## 🔬 Technology Stack
+    
+    - **Machine Learning**: Scikit-learn, XGBoost
+    - **Web Framework**: Streamlit
+    - **Data Processing**: Pandas, NumPy
+    - **Explainability**: LIME, SHAP
+    - **Visualization**: Plotly, Matplotlib
+    
+    ## 📊 Data & Models
+    
+    - **Training Data**: Historical pest occurrence data with environmental parameters
+    - **Cross-Validation**: Rigorous model validation and selection
+    - **Hyperparameter Tuning**: Optimized model parameters for best performance
+    - **Ensemble Methods**: Multiple algorithms combined for robust predictions
+    
+    ## 🌍 Coverage Area
+    
+    The system covers **{} tehsils** across cotton-growing regions, providing localized
+    predictions based on regional characteristics.
+    
+    ## 📈 Performance
+    
+    - **99 Total Models**: 9 algorithms × 11 pest types
+    - **Cross-Validated**: All models validated using cross-validation
+    - **Best Model Selection**: Automatic selection of best-performing model per pest
+    - **Continuous Improvement**: Regular model updates and retraining
+    
+    ## 🤝 Usage Guidelines
+    
+    1. **Input Accuracy**: Ensure accurate input parameters for reliable predictions
+    2. **Regular Monitoring**: Use predictions as part of regular field monitoring
+    3. **Expert Consultation**: Combine predictions with expert agricultural advice
+    4. **Integrated Approach**: Use as part of comprehensive pest management strategy
+    
+    ## ⚠️ Disclaimer
+    
+    This system provides predictions based on historical data and machine learning models.
+    While highly accurate, predictions should be used as guidance alongside professional
+    agricultural expertise and field observations.
+    """.format(len(TEHSILS)))
+    
+    st.markdown("---")
+    st.markdown("*Developed for advancing precision agriculture and sustainable farming practices.*")
+
+# === Main App ===
+def main():
+    # Create sidebar navigation
+    selected_page = create_sidebar()
+    
+    # Route to appropriate page
+    if selected_page == "home":
+        show_home_page()
+    elif selected_page == "prediction":
+        show_prediction_page()
+    elif selected_page == "lime":
+        show_lime_page()
+    elif selected_page == "shap":
+        show_shap_page()
+    elif selected_page == "model_info":
+        show_model_info_page()
+    elif selected_page == "about":
+        show_about_page()
 
 if __name__ == "__main__":
     main()
