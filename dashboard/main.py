@@ -21,17 +21,17 @@ def load_models():
         return {}, ["joblib not installed"]
     
     model_paths = {
-        "W_FLY": './models/tuned_models/stacking_W_FLY_model.pkl',
-        "JASSID": './models/tuned_models/random_forest_JASSID_model.pkl',
+        "W_FLY": './models/tuned_models/xgboost_W_FLY_model.pkl',
+        "JASSID": './models/tuned_models/xgboost_JASSID_model.pkl',
         "THRIPS": './models/tuned_models/stacking_THRIPS_model.pkl',
-        "MBUG": './models/tuned_models/knn_M_BUG_model.pkl',
-        "MITES": './models/tuned_models/knn_MITES_model.pkl',
-        "APHIDS": './models/tuned_models/adaboost_APHIDS_model.pkl',
-        "DUSKY": './models/tuned_models/voting_DUSKY_COTTON_BUG_model.pkl',
-        "SBW": './models/tuned_models/voting_SBW_model.pkl',
-        "PBW": './models/tuned_models/xgboost_PBW_model.pkl',
-        "ABW": './models/tuned_models/voting_ABW_model.pkl',
-        "ARMYWORM": './models/tuned_models/stacking_Army_Worm_model.pkl',
+        "MBUG": './models/tuned_models/stacking_M_BUG_model.pkl',
+        "MITES": './models/tuned_models/random_forest_MITES_model.pkl',
+        "APHIDS": './models/tuned_models/random_forest_APHIDS_model.pkl',
+        "DUSKY": './models/tuned_models/stacking_DUSKY_COTTON_BUG_model.pkl',
+        "SBW": './models/tuned_models/random_forest_SBW_model.pkl',
+        "PBW": './models/tuned_models/stacking_PBW_model.pkl',
+        "ABW": './models/tuned_models/knn_ABW_model.pkl',
+        "ARMYWORM": './models/tuned_models/knn_Army_Worm_model.pkl',
     }
     
     models = {}
@@ -46,6 +46,8 @@ def load_models():
         except Exception as e:
             if "_RemainderColsList" in str(e):
                 errors.append(f"{key}: Sklearn version mismatch")
+            elif "numpy._core" in str(e):
+                errors.append(f"{key}: Numpy version mismatch")
             else:
                 errors.append(f"{key}: {str(e)}")
     
@@ -58,6 +60,35 @@ def check_sklearn_version():
         return sklearn.__version__
     except ImportError:
         return "Not installed"
+
+def check_numpy_version():
+    """Check numpy version"""
+    try:
+        import numpy
+        return numpy.__version__
+    except ImportError:
+        return "Not installed"
+
+def generate_random_inputs():
+    """Generate random input values for testing"""
+    return {
+        'week': random.randint(1, 4),
+        'month': random.randint(6, 8),  # Cotton season
+        'year': random.randint(2020, 2024),
+        'tehsil': random.choice(TEHSILS),
+        'spots_visited': random.randint(10, 30),
+        'area_visited': round(random.uniform(20, 100), 1),
+        'temp_mean': round(random.uniform(25, 35), 1),
+        'temp_max': round(random.uniform(30, 40), 1),
+        'temp_min': round(random.uniform(20, 28), 1),
+        'dew_point': round(random.uniform(15, 25), 1),
+        'nitrogen': random.randint(80, 150),
+        'phosphorus': random.randint(30, 60),
+        'potassium': random.randint(150, 250),
+        'humidity': random.randint(50, 85),
+        'ph': round(random.uniform(5.5, 7.5), 1),
+        'rainfall': random.randint(0, 200)
+    }
 
 # === Constants ===
 TEHSILS = [
@@ -151,14 +182,40 @@ def predict_pests_demo(inputs):
 def main():
     st.title("🌱 Cotton Pest Prediction System")
     
-    # Check sklearn version
+    # Check versions
     sklearn_version = check_sklearn_version()
+    numpy_version = check_numpy_version()
     
     # Load models
     models, errors = load_models()
     
     # Show status
-    if errors and "_RemainderColsList" in str(errors[0]):
+    if errors and ("numpy._core" in str(errors[0]) or "No module named 'numpy._core'" in str(errors[0])):
+        st.error("⚠️ Numpy Version Compatibility Issue Detected!")
+        
+        with st.expander("🔧 How to Fix This Issue", expanded=True):
+            st.markdown(f"""
+            **Current versions:**
+            - Sklearn: {sklearn_version}
+            - Numpy: {numpy_version}
+            
+            **The models were saved with numpy 1.x but you're using numpy 2.x. Try:**
+            
+            ```bash
+            pip uninstall numpy -y
+            pip install numpy==1.26.4
+            ```
+            
+            **Then restart the app:**
+            ```bash
+            streamlit run dashboard/main.py
+            ```
+            """)
+        
+        st.info("🎯 **Demo Mode Active** - Using rule-based predictions for demonstration")
+        use_demo_mode = True
+        
+    elif errors and "_RemainderColsList" in str(errors[0]):
         st.error("⚠️ Sklearn Version Compatibility Issue Detected!")
         
         with st.expander("🔧 How to Fix This Issue", expanded=True):
@@ -205,28 +262,56 @@ def main():
     
     col1, col2 = st.columns(2)
     
+    # Get values from session state or use defaults
     with col1:
-        week = st.number_input("Week (1-4)", min_value=1, max_value=4, value=2)
-        month = st.number_input("Month (6-8)", min_value=6, max_value=8, value=7)
-        year = st.number_input("Year", min_value=2015, max_value=2030, value=2024)
-        tehsil = st.selectbox("Tehsil", options=TEHSILS, index=TEHSILS.index("faisalabad"))
-        spots_visited = st.number_input("Total Spots Visited", min_value=1, value=15)
-        area_visited = st.number_input("Total Area Visited (acres)", min_value=0.1, value=50.0)
-        temp_mean = st.number_input("Mean Temperature (°C)", value=28.5)
-        temp_max = st.number_input("Max Temperature (°C)", value=35.0)
-        temp_min = st.number_input("Min Temperature (°C)", value=22.0)
-        dew_point = st.number_input("Dew Point (°C)", value=18.0)
+        week = st.number_input("Week (1-4)", min_value=1, max_value=4, 
+                               value=st.session_state.get('random_week', 2), key="week")
+        month = st.number_input("Month (6-8)", min_value=6, max_value=8, 
+                                value=st.session_state.get('random_month', 7), key="month")
+        year = st.number_input("Year", min_value=2015, max_value=2030, 
+                               value=st.session_state.get('random_year', 2024), key="year")
+        
+        tehsil_default = st.session_state.get('random_tehsil', 'faisalabad')
+        tehsil_index = TEHSILS.index(tehsil_default) if tehsil_default in TEHSILS else TEHSILS.index('faisalabad')
+        tehsil = st.selectbox("Tehsil", options=TEHSILS, index=tehsil_index, key="tehsil")
+        
+        spots_visited = st.number_input("Total Spots Visited", min_value=1, 
+                                        value=st.session_state.get('random_spots_visited', 15), key="spots_visited")
+        area_visited = st.number_input("Total Area Visited (acres)", min_value=0.1, 
+                                       value=st.session_state.get('random_area_visited', 50.0), key="area_visited")
+        temp_mean = st.number_input("Mean Temperature (°C)", 
+                                    value=st.session_state.get('random_temp_mean', 28.5), key="temp_mean")
+        temp_max = st.number_input("Max Temperature (°C)", 
+                                   value=st.session_state.get('random_temp_max', 35.0), key="temp_max")
+        temp_min = st.number_input("Min Temperature (°C)", 
+                                   value=st.session_state.get('random_temp_min', 22.0), key="temp_min")
+        dew_point = st.number_input("Dew Point (°C)", 
+                                    value=st.session_state.get('random_dew_point', 18.0), key="dew_point")
     
     with col2:
-        rainfall = st.number_input("Rainfall (mm)", min_value=0, value=150)
-        humidity = st.slider("Humidity (%)", min_value=0, max_value=100, value=70)
-        nitrogen = st.number_input("Nitrogen (N) ppm", min_value=0, value=120)
-        phosphorus = st.number_input("Phosphorus (P) ppm", min_value=0, value=45)
-        potassium = st.number_input("Potassium (K) ppm", min_value=0, value=200)
-        ph = st.slider("Soil pH", min_value=0.0, max_value=14.0, value=6.5)
+        rainfall = st.number_input("Rainfall (mm)", min_value=0, 
+                                   value=st.session_state.get('random_rainfall', 150), key="rainfall")
+        humidity = st.slider("Humidity (%)", min_value=0, max_value=100, 
+                             value=st.session_state.get('random_humidity', 70), key="humidity")
+        nitrogen = st.number_input("Nitrogen (N) ppm", min_value=0, 
+                                   value=st.session_state.get('random_nitrogen', 120), key="nitrogen")
+        phosphorus = st.number_input("Phosphorus (P) ppm", min_value=0, 
+                                     value=st.session_state.get('random_phosphorus', 45), key="phosphorus")
+        potassium = st.number_input("Potassium (K) ppm", min_value=0, 
+                                    value=st.session_state.get('random_potassium', 200), key="potassium")
+        ph = st.slider("Soil pH", min_value=0.0, max_value=14.0, 
+                       value=st.session_state.get('random_ph', 6.5), key="ph")
     
-    # Random inputs button
+    # Random inputs button - FIXED!
     if st.button("🎲 Generate Random Inputs"):
+        # Generate random values
+        random_vals = generate_random_inputs()
+        
+        # Store in session state
+        for key, value in random_vals.items():
+            st.session_state[f'random_{key}'] = value
+        
+        # Rerun to update the UI
         st.rerun()
     
     # Predict button
