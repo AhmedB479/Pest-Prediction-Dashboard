@@ -503,34 +503,13 @@ def show_lime_page():
 
 
 
+# At the top of main.py
+from components.shap import show_shap_ui
+
+# In your show_shap_page() function:
 def show_shap_page():
     """SHAP analysis page"""
-    st.title("📈 SHAP Model Analysis")
-    st.markdown("---")
-    
-    st.markdown("""
-    ## SHapley Additive exPlanations (SHAP)
-    
-    SHAP values provide a unified approach to explaining model predictions by computing 
-    the contribution of each feature to the prediction.
-    """)
-    
-    
-
-    # Placeholder for SHAP functionality  
-    with st.expander("📖 How SHAP Works"):
-        st.markdown("""
-        1. **Shapley Values**: Based on cooperative game theory
-        2. **Feature Contributions**: Calculate how much each feature contributes to the prediction
-        3. **Additive**: The sum of SHAP values equals the difference from expected value
-        4. **Global & Local**: Provides both instance-level and global feature importance
-        
-        **Benefits:**
-        - Theoretically grounded
-        - Consistent and fair attributions
-        - Multiple visualization types
-        - Global feature importance
-        """)
+    show_shap_ui()
 
 def show_model_info_page():
     """Model information page"""
